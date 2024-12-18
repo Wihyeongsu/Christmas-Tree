@@ -1,24 +1,36 @@
-use color_eyre::Result;
-use crossterm::event::{self, Event};
-use ratatui::{DefaultTerminal, Frame};
+use std::io;
 
-fn main() -> Result<()> {
-    color_eyre::install()?;
-    let terminal = ratatui::init();
-    let result = run(terminal);
+use ratatui::{
+    crossterm::event::{self, KeyCode, KeyEventKind},
+    style::Stylize,
+    widgets::{Block, Paragraph},
+    DefaultTerminal,
+};
+
+fn main() -> io::Result<()> {
+    let mut terminal = ratatui::init();
+    terminal.clear()?;
+    let app_result = run(terminal);
     ratatui::restore();
-    result
+    app_result
 }
 
-fn run(mut terminal: DefaultTerminal) -> Result<()> {
+fn run(mut terminal: DefaultTerminal) -> io::Result<()> {
     loop {
-        terminal.draw(render)?;
-        if matches!(event::read()?, Event::Key(_)) {
-            break Ok(());
+        terminal.draw(|frame| {
+            let tree_art = include_str!("./ascii_arts/tree.txt");
+            let greeting = Paragraph::new(tree_art)
+                .white()
+                .left_aligned()
+                .block(Block::bordered().title("Tree"))
+                .on_black();
+            frame.render_widget(greeting, frame.area());
+        })?;
+
+        if let event::Event::Key(key) = event::read()? {
+            if key.kind == KeyEventKind::Press && key.code == KeyCode::Char('q') {
+                return Ok(());
+            }
         }
     }
-}
-
-fn render(frame: &mut Frame) {
-    frame.render_widget("hello world", frame.area());
 }
